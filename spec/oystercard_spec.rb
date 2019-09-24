@@ -35,7 +35,7 @@ describe OysterCard do
     it "should set the in journey status to true" do
       subject.top_up(90)
       subject.touch_in(station_a)
-      expect(subject.in_journey).to eq true
+      expect(subject.journey).to_not be nil
     end
 
     it "raises an error if card does not have required minimum balance" do
@@ -45,15 +45,16 @@ describe OysterCard do
 
     it "stores tap in station as a variable" do
       subject.touch_in(station_a)
-      expect(subject.entry_station).to eq station_a
+      expect(subject.journey.full_journey[:entry_station]).to eq station_a
     end
 
   end
 
   describe "#touch_out" do
-    it "should set the in journey status to false" do
+    it "should set journey variable back to nil" do
+      subject.touch_in(station_a)
       subject.touch_out(station_b)
-      expect(subject.in_journey).to eq false
+      expect(subject.journey).to eq nil
     end
 
     it 'reduces card balance by minimum fare' do
