@@ -4,7 +4,9 @@ describe OysterCard do
 
   let(:station_a) { double :station_a }
   let(:station_b) { double :station_b }
-  let(:journey) { {entry_station: station_a, exit_station: station_b } }
+  let(:journey) { {entry_station: station_a, exit_station: station_b} }
+  let(:out_error_journey) { {entry_station: "NO TOUCH IN - Max fare charged", exit_station: station_b} }
+  let(:in_error_journey) { {entry_station: station_a, exit_station: "NO TOUCH OUT - Max fare charged"} }
 
   before(:each) do
     subject.top_up(20)
@@ -32,7 +34,7 @@ describe OysterCard do
   end
 
   describe "#touch_in" do
-    it "should set the in journey status to true" do
+    it "should create a new journey" do
       subject.top_up(90)
       subject.touch_in(station_a)
       expect(subject.journey).to_not be nil
@@ -43,14 +45,39 @@ describe OysterCard do
       expect{subject.touch_in(station_a)}.to raise_error("Fare exceeds available balance")
     end
 
-    it "stores tap in station as a variable" do
+    it "stores entry station as a variable" do
       subject.touch_in(station_a)
       expect(subject.journey.full_journey[:entry_station]).to eq station_a
     end
 
   end
 
+  describe "#touch_in_error" do
+
+    it "should permantly store the complete journey including the EXIT error" do
+    subject.touch_in(station_a)
+    subject.touch_in_error(station_b)
+    expect(subject.journey_history).to include in_error_journey
+    end
+
+    #Need a double for MAXIMUM FARE
+    it "should reduce the card balance by the maximum fair" do
+      subject.top_up(10)
+      subject.touch_in(station_a)
+      expect{subject.touch_in_error(station_b)}.to change{subject.balance}.by(-Journey::MAXIMUM_FARE)
+    end
+
+    it "should create a new jouney" do
+      subject.top_up(90)
+      subject.touch_in(station_a)
+      subject.touch_in_error(station_b)
+      expect(subject.journey).to_not be nil
+    end
+
+  end
+
   describe "#touch_out" do
+
     it "should set journey variable back to nil" do
       subject.touch_in(station_a)
       subject.touch_out(station_b)
@@ -75,4 +102,25 @@ describe OysterCard do
     subject.touch_out(station_b)
     expect(subject.journey_history).to include journey
     end
+
+  describe "#touch_out_error" do
+
+    #Need a double for MAXIMUM FARE
+    it "should reduce the card balance by the maximum fair" do
+      subject.top_up(10)
+      expect{subject.touch_out_error(station_b)}.to change{subject.balance}.by(-Journey::MAXIMUM_FARE)
+    end
+
+    it "should permantly store the complete journey including the ENTRY error" do
+    subject.touch_out_error(station_b)
+    expect(subject.journey_history).to include out_error_journey
+    end
+
+    it "should set the journey variable to nil" do
+    subject.touch_out_error(station_b)
+    expect(subject.journey).to eq nil
+    end
+
+  end
+
 end
